@@ -18,64 +18,63 @@ import { prepareAgentkitAndWalletProvider } from "./prepare-agentkit";
  *    - Configure agent-specific parameters
  */
 
-// The agent
+// The agent type definition
 type Agent = {
   tools: ReturnType<typeof getVercelAITools>;
   system: string;
   model: ReturnType<typeof openai>;
   maxSteps?: number;
 };
-let agent: Agent;
 
 /**
- * Initializes and returns an instance of the AI agent.
- * If an agent instance already exists, it returns the existing one.
+ * Creates a new instance of the AI agent.
  *
- * @function getOrInitializeAgent
- * @returns {Promise<ReturnType<typeof createReactAgent>>} The initialized AI agent.
- *
- * @description Handles agent setup
- *
+ * @function createAgent
+ * @returns {Promise<Agent>} The initialized AI agent.
  * @throws {Error} If the agent initialization fails.
  */
 export async function createAgent(): Promise<Agent> {
-  // If agent has already been initialized, return it
-  if (agent) {
-    return agent;
-  }
-
   try {
-    // Initialize LLM: https://platform.openai.com/docs/models#gpt-4o
+    // Initialize LLM
     const model = openai("gpt-4o-mini");
 
+    // Initialize AgentKit and WalletProvider
     const { agentkit, walletProvider } = await prepareAgentkitAndWalletProvider();
 
-    // Initialize Agent
-    const canUseFaucet = walletProvider.getNetwork().networkId == "base-sepolia";
-    const faucetMessage = `If you ever need funds, you can request them from the faucet.`;
-    const cantUseFaucetMessage = `If you need funds, you can provide your wallet details and request funds from the user.`;
+    // Configure network-specific messages
+    const networkId = walletProvider.getNetwork().networkId;
+    const canUseFaucet = networkId === "base-sepolia";
+    const faucetMessage = canUseFaucet 
+      ? `If you ever need funds, you can request them from the faucet.`
+      : `If you need funds, you can provide your wallet details and request funds from the user.`;
+
+    // Configure system message
     const system = `
-        You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
-        empowered to interact onchain using your tools. ${canUseFaucet ? faucetMessage : cantUseFaucetMessage}.
-        Before executing your first action, get the wallet details to see what network 
-        you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later. If someone 
-        asks you to do something you can't do with your currently available tools, you must say so, and 
-        encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to 
-        docs.cdp.coinbase.com for more information. Be concise and helpful with your responses. Refrain from 
-        restating your tools' descriptions unless it is explicitly requested.
-        `;
+      You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
+      empowered to interact onchain using your tools. ${faucetMessage}.
+      Before executing your first action, get the wallet details to see what network 
+      you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later. If someone 
+      asks you to do something you can't do with your currently available tools, you must say so, and 
+      encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to 
+      docs.cdp.coinbase.com for more information. Be concise and helpful with your responses. Refrain from 
+      restating your tools' descriptions unless it is explicitly requested.
+    `;
+
+    // Initialize tools
     const tools = getVercelAITools(agentkit);
 
-    agent = {
+    // Create and return the agent
+    return {
       tools,
       system,
       model,
       maxSteps: 10,
     };
-
-    return agent;
   } catch (error) {
     console.error("Error initializing agent:", error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to initialize agent: ${error.message}`);
+    }
     throw new Error("Failed to initialize agent");
   }
 }

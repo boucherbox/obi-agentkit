@@ -58,19 +58,25 @@ export async function prepareAgentkitAndWalletProvider(): Promise<{
 }> {
   try {
     // Initialize WalletProvider: https://docs.cdp.coinbase.com/agentkit/docs/wallet-management
-    let privateKey = process.env.PRIVATE_KEY as Hex;
-    if (!privateKey) {
+    let privateKey: Hex;
+    const envPrivateKey = process.env.PRIVATE_KEY;
+    
+    if (!envPrivateKey) {
       privateKey = generatePrivateKey();
       console.log("Generated new private key. Please set PRIVATE_KEY in your environment variables.");
+    } else {
+      // Ensure the private key starts with '0x' and is a valid hex string
+      privateKey = envPrivateKey.startsWith('0x') ? envPrivateKey as Hex : `0x${envPrivateKey}` as Hex;
     }
 
     const account = privateKeyToAccount(privateKey);
-    const networkId = process.env.NETWORK_ID as string;
+    const networkId = process.env.NETWORK_ID || 'base-sepolia'; // Default to base-sepolia if not specified
+    const rpcUrl = process.env.RPC_URL; // Get RPC URL from environment variables
 
     const client = createWalletClient({
       account,
       chain: NETWORK_ID_TO_VIEM_CHAIN[networkId],
-      transport: http(),
+      transport: http(rpcUrl), // Use custom RPC URL if provided
     });
     const walletProvider = new ViemWalletProvider(client);
 

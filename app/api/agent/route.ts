@@ -3,8 +3,6 @@ import { NextResponse } from "next/server";
 import { createAgent } from "./create-agent";
 import { Message, generateId, generateText } from "ai";
 
-const messages: Message[] = [];
-
 /**
  * Handles incoming POST requests to interact with the AgentKit-powered AI agent.
  * This function processes user messages and streams responses from the agent.
@@ -26,26 +24,53 @@ export async function POST(
   req: Request & { json: () => Promise<AgentRequest> },
 ): Promise<NextResponse<AgentResponse>> {
   try {
-    // 1️. Extract user message from the request body
+    // 1. Extract user message from the request body
     const { userMessage } = await req.json();
+    if (!userMessage) {
+      return NextResponse.json(
+        { error: "No message provided" },
+        { status: 400 }
+      );
+    }
 
     // 2. Get the agent
     const agent = await createAgent();
 
-    // 3.Start streaming the agent's response
-    messages.push({ id: generateId(), role: "user", content: userMessage });
+    // 3. Create a new messages array for this request
+    const messages: Message[] = [
+      { id: generateId(), role: "user", content: userMessage }
+    ];
+
+    // 4. Generate the agent's response
     const { text } = await generateText({
       ...agent,
       messages,
     });
 
-    // 4. Add the agent's response to the messages
-    messages.push({ id: generateId(), role: "assistant", content: text });
-
-    // 5️. Return the final response
+    // 5. Return the response
     return NextResponse.json({ response: text });
   } catch (error) {
     console.error("Error processing request:", error);
-    return NextResponse.json({ error: "Failed to process message" });
+    
+    // Return more specific error messages based on the error type
+    if (error instanceof Error) {
+      if (error.message.includes("private key")) {
+        return NextResponse.json(
+          { error: "Invalid private key configuration. Please check your environment variables." },
+          { status: 500 }
+        );
+      }
+      if (error.message.includes("network")) {
+        return NextResponse.json(
+          { error: "Network configuration error. Please check your NETWORK_ID environment variable." },
+          { status: 500 }
+        );
+      }
+    }
+    
+    return NextResponse.json(
+      { error: "Failed to process message. Please try again later." },
+      { status: 500 }
+    );
   }
 }
