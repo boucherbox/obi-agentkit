@@ -21,6 +21,9 @@ const atma = Atma({
 export const metadata: Metadata = {
   title: "Obi",
   description: "Obi - Your AI Assistant",
+  icons: {
+    icon: '/favicon_obi_32.svg',
+  },
 };
 
 /**
@@ -38,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${atma.className} bg-gray-100 dark:bg-gray-900 dark flex flex-col min-h-screen bg-[url('/background_image.svg')] bg-cover bg-center bg-no-repeat bg-fixed`}>
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" />
         <ActionProvider>
           {/* Header (Fixed Height) */}
           <header className="pt-16 pb-6 flex items-center justify-center relative z-10">
@@ -48,7 +51,7 @@ export default function RootLayout({
           </header>
 
           {/* Main Content (Dynamic, Grows but Doesn't Force Scroll) */}
-          <main className="flex-grow flex items-center justify-center px-4 relative z-10">{children}</main>
+          <main className="flex-grow flex items-center justify-center px-4 pb-8 relative z-10">{children}</main>
         </ActionProvider>
       </body>
     </html>
