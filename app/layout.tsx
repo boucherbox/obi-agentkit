@@ -45,7 +45,7 @@ export default function RootLayout({
         <ActionProvider>
           {/* Header (Fixed Height) */}
           <header className="pt-16 pb-6 flex items-center justify-center relative z-10">
-            <span className={`${oi.className} text-6xl md:text-8xl font-bold text-[#987048]`}>
+            <span className={`${oi.className} text-6xl md:text-8xl text-[#987048]`}>
               Obi
             </span>
           </header>
